@@ -2,7 +2,7 @@
 import numpy as np
 import cv2 as cv
 
-cap = cv.VideoCapture(1)  
+cap = cv.VideoCapture(0)  
 
 lkparm = dict(winSize=(15,15), maxLevel=2,
               criteria=(cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03))
