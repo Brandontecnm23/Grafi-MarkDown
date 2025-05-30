@@ -6,26 +6,27 @@ from OpenGL.GLUT import *
 from PIL import Image
 import sys
 
-#Barquito de minecraft todo bonito que se mueve con las flechas pero se va chueco por alguna razón jajajajajaja
+#Barquito de minecraft todo bonito que se mueve con las flechas - VERSIÓN CORREGIDA
 class MinecraftBoatMinimal:
     def __init__(self):
         self.x, self.y, self.z = 0.0, -0.5, 0.0
         self.rotation_y = 0.0
+        self.target_rotation = 0.0  # Para rotación suave
         self.camera_distance = 10.0
         self.move_speed = 0.2
-        self.rotation_speed = 3.0 
+        self.rotation_speed = 5.0 
         self.keys = {
-            'w': False, 's': False, 'W': False, 'S': False,
+            'w': False, 's': False,
             'up': False, 'down': False, 'left': False, 'right': False
         }
-         self.boat_texture = None
+        self.boat_texture = None  # ARREGLADO: Indentación correcta
         self.water_texture = None
 
     def load_textures(self):
         """Load textures from uploaded image files with improved scaling"""
         try:
-             self.water_texture = self.load_texture("A.jpeg")
-             self.boat_texture = self.load_texture("R.jpeg")
+            self.water_texture = self.load_texture("A.jpeg")
+            self.boat_texture = self.load_texture("R.jpeg")
             print("Textures loaded successfully!")
         except Exception as e:
             print(f"Error loading textures: {e}")
@@ -88,26 +89,41 @@ class MinecraftBoatMinimal:
                   0, 1, 0)
 
     def update_movement(self):
-        """Handle movement based on pressed keys"""
-         if self.keys.get('w', False) or self.keys.get('W', False):
+        """Handle movement based on pressed keys - ARREGLADO"""
+        # Manejo del zoom de cámara
+        if self.keys.get('w', False):
             self.camera_distance = max(3.0, self.camera_distance - self.move_speed)
-            print(f"W pressed! Camera distance: {self.camera_distance}")
-        if self.keys.get('s', False) or self.keys.get('S', False):
+        if self.keys.get('s', False):
             self.camera_distance = min(20.0, self.camera_distance + self.move_speed)
-            print(f"S pressed! Camera distance: {self.camera_distance}")
          
+        # Movimiento del barco con rotación suave
         if self.keys.get('left', False):   
             self.x -= self.move_speed
-            self.rotation_y = 90   
-        if self.keys.get('right', False):  
+            self.target_rotation = 90   
+        elif self.keys.get('right', False):  
             self.x += self.move_speed
-            self.rotation_y = -90   
-        if self.keys.get('up', False):   
+            self.target_rotation = -90   
+        elif self.keys.get('up', False):   
             self.z -= self.move_speed
-            self.rotation_y = 0   
-        if self.keys.get('down', False):   
+            self.target_rotation = 0   
+        elif self.keys.get('down', False):   
             self.z += self.move_speed
-            self.rotation_y = 180  
+            self.target_rotation = 180
+        
+        # NUEVO: Rotación suave para evitar que se vea "chueco"
+        diff = self.target_rotation - self.rotation_y
+        if abs(diff) > 180:
+            if diff > 0:
+                diff -= 360
+            else:
+                diff += 360
+        
+        if abs(diff) > 1:
+            self.rotation_y += diff * 0.1  # Interpolación suave
+            if self.rotation_y >= 360:
+                self.rotation_y -= 360
+            elif self.rotation_y < 0:
+                self.rotation_y += 360
 
     def draw_boat(self):
         """Dibuja un bote realista usando primitivas de OpenGL con texturas mejoradas"""
@@ -123,24 +139,28 @@ class MinecraftBoatMinimal:
             glDisable(GL_TEXTURE_2D)
             glColor3f(0.6, 0.3, 0.1)  
 
+        # Casco principal
         glPushMatrix()
         glTranslatef(0, -0.2, 0)
         glScalef(2.5, 0.4, 1.2)
         self.draw_boat_hull()
         glPopMatrix()
 
+        # Proa (frente)
         glPushMatrix()
         glTranslatef(2.3, -0.15, 0)
         glScalef(0.5, 0.3, 0.8)
         self.draw_triangular_prism()
         glPopMatrix()
 
+        # Popa (atrás)
         glPushMatrix()
         glTranslatef(-2.3, -0.1, 0)
         glScalef(0.4, 0.5, 1.0)
         self.draw_cube()
         glPopMatrix()
 
+        # Asientos
         glPushMatrix()
         glTranslatef(-0.8, 0.1, 0)
         glScalef(0.3, 0.2, 0.9)
@@ -153,6 +173,7 @@ class MinecraftBoatMinimal:
         self.draw_cube()
         glPopMatrix()
 
+        # Bordes
         glPushMatrix()
         glTranslatef(0, 0.0, 0.6)
         glScalef(2.0, 0.3, 0.1)
@@ -169,7 +190,9 @@ class MinecraftBoatMinimal:
         glPopMatrix()
 
     def draw_cube(self):
-        """Dibuja un cubo básico con coordenadas de textura mejoradas"""
+        """Dibuja un cubo básico con coordenadas de textura mejoradas - ARREGLADO"""
+        tex_scale = 1.0  # ARREGLADO: Variable definida localmente
+        
         glBegin(GL_QUADS)
 
         vertices = np.array([
@@ -294,7 +317,7 @@ def reshape(width, height):
     glMatrixMode(GL_MODELVIEW)
 
 def keyboard(key, x, y):
-    """Handle key press events - FIXED VERSION"""
+    """Handle key press events - ARREGLADO"""
     global boat
     
     try:
@@ -305,15 +328,13 @@ def keyboard(key, x, y):
             key_code = key
             key_char = chr(key).lower()
         
-        print(f"Key pressed: {key_char} (code: {key_code}, type: {type(key)})")
-        
         if key_code == 27:  # ESC key
             print("Exiting...")
             sys.exit(0)
         
-        if key_char in ['w', 's']:
+        # SIMPLIFICADO: Solo manejo de minúsculas
+        if key_char in boat.keys:
             boat.keys[key_char] = True
-            print(f"Setting {key_char} to True")
         
     except (ValueError, UnicodeDecodeError) as e:
         print(f"Special key pressed: {key} (error: {e})")
@@ -321,22 +342,17 @@ def keyboard(key, x, y):
     glutPostRedisplay()
 
 def keyboard_up(key, x, y):
-    """Handle key release events - FIXED VERSION"""
+    """Handle key release events - ARREGLADO"""
     global boat
     
     try:
         if isinstance(key, bytes):
             key_char = key.decode('utf-8').lower()
-            key_code = ord(key_char)
         else:
-            key_code = key
             key_char = chr(key).lower()
         
-        print(f"Key released: {key_char} (code: {key_code}, type: {type(key)})")
-        
-        if key_char in ['w', 's']:
+        if key_char in boat.keys:
             boat.keys[key_char] = False
-            print(f"Setting {key_char} to False")
             
     except (ValueError, UnicodeDecodeError) as e:
         print(f"Special key released: {key} (error: {e})")
@@ -344,10 +360,8 @@ def keyboard_up(key, x, y):
     glutPostRedisplay()
 
 def special_keys(key, x, y):
-    """Handle special keys (arrows) - FIXED VERSION"""
+    """Handle special keys (arrows) - ARREGLADO"""
     global boat
-    
-    print(f"Special key pressed: {key}")
     
     if key == GLUT_KEY_UP:
         boat.keys['up'] = True
@@ -361,10 +375,8 @@ def special_keys(key, x, y):
     glutPostRedisplay()
 
 def special_keys_up(key, x, y):
-    """Handle special key releases - FIXED VERSION"""
+    """Handle special key releases - ARREGLADO"""
     global boat
-    
-    print(f"Special key released: {key}")
     
     if key == GLUT_KEY_UP:
         boat.keys['up'] = False
@@ -378,16 +390,16 @@ def special_keys_up(key, x, y):
     glutPostRedisplay()
 
 def display():
-    """Función de renderizado - FIXED VERSION"""
+    """Función de renderizado - ARREGLADO"""
     global boat
     
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     
     boat.update_movement()
-    
     boat.update_camera()
     boat.draw_water()
     boat.draw_boat()
+    
     glutSwapBuffers()
 
 def timer(value):
@@ -404,7 +416,7 @@ def main():
         glutInit(sys.argv)
         glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
         glutInitWindowSize(1000, 800)
-        window = glutCreateWindow(b"Bote de Minecraft - OpenGL (CONTROLES ARREGLADOS)")
+        window = glutCreateWindow(b"Bote de Minecraft - OpenGL (VERSION CORREGIDA)")
 
         glEnable(GL_DEPTH_TEST)
         glClearColor(0.5, 0.8, 1.0, 1.0)  # Sky blue background
@@ -426,10 +438,9 @@ def main():
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
 
         boat = MinecraftBoatMinimal()
-        
         boat.load_textures()
         
-        glutDisplayFunc(display)  # Removed lambda
+        glutDisplayFunc(display)
         glutReshapeFunc(reshape)
         glutKeyboardFunc(keyboard)
         glutKeyboardUpFunc(keyboard_up)
@@ -438,7 +449,7 @@ def main():
         
         glutTimerFunc(16, timer, 0)
         
-        print("\n=== CONTROLES ARREGLADOS ===")
+        print("\n=== CONTROLES CORREGIDOS ===")
         print("W - Acercar cámara al bote")
         print("S - Alejar cámara del bote") 
         print("Flecha ARRIBA - Mover bote hacia ADELANTE")
@@ -447,11 +458,12 @@ def main():
         print("Flecha DERECHA - Mover bote hacia la DERECHA")
         print("ESC - Salir")
         print("\n=== ARREGLOS REALIZADOS ===")
-        print("✓ Diccionario de teclas simplificado")
-        print("✓ Manejo de teclas W/S arreglado")
-        print("✓ Función display() corregida")
-        print("✓ Variables globales manejadas correctamente")
-        print("✓ Callbacks de teclado mejorados")
+        print("✓ Indentación corregida (línea 15)")
+        print("✓ Variable tex_scale definida en draw_cube()")
+        print("✓ Rotación suave para evitar movimiento 'chueco'")
+        print("✓ Manejo de teclas simplificado")
+        print("✓ Interpolación suave entre rotaciones")
+        print("✓ Código más limpio y organizado")
         
         glutMainLoop()
         
